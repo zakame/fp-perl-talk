@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Functional Perl Programming</title>
+<meta name="author" content="(Zak B. Elep)"/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/reveal.js/3.0.0/css/reveal.css"/>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/reveal.js/3.0.0/css/theme/night.css" id="theme"/>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/reveal.js/3.0.0/lib/css/zenburn.css"/>
+<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+<script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = 'https://cdn.jsdelivr.net/reveal.js/3.0.0/css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+</script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section id="sec-title-slide"><h1 class="title">Functional Perl Programming</h1><h2 class="author">Zak B. Elep</h2><h2 class="email"><a href="mailto:zak.elep@yoyo-holdings.com">zak.elep@yoyo-holdings.com</a></h2><p class="date">Created: 2016-08-31 Wed 16:53</p>
+</section>
+<p>
+<a href="https://github.com/zakame/fp-perl-talk">https://github.com/zakame/fp-perl-talk</a>
+</p>
+
+<section>
+<section id="slide-orgheadline1">
+<h2 id="orgheadline1">About Me</h2>
+<ul>
+<li>@zakame in GitHub, Twitter, FB</li>
+<li>Co-Founder, Chief Architect, YOYO Holdings</li>
+<li>Recovering Sysadmin</li>
+<li>Hacks on Perl, Docker, Emacs, Android</li>
+
+</ul>
+
+<aside class="notes">
+<p>
+This is written using Emacs OrgMode, publishing using Reveal.js,
+adapting from my earlier Docker on AWS talk :D
+</p>
+
+</aside>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline2">
+<h2 id="orgheadline2">What's this for?</h2>
+<ul>
+<li>A (hopefully) short blather on Perl and a (longer) codewalk on its
+Functional Programming (FP) capabilities</li>
+<li>NOT a Perl tutorial, but should cover a couple key concepts enabling
+FP (and not just FP) in Perl</li>
+<li>A practical example of FP in general, covering only the most
+visible/popular ones; applicable to other languages</li>
+
+</ul>
+
+<aside class="notes">
+<p>
+I have a harder time deciding what this talk is for especially as I
+have a very limited audience (and one that probably does not know
+about Perl at all.)
+</p>
+
+</aside>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline6">
+<h2 id="orgheadline6">Why Perl?</h2>
+
+<div class="figure">
+<p><img src="http://old.sppn.nl/images/prp.png" alt="prp.png">
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline3">
+<h3 id="orgheadline3">Ubiquity</h3>
+<ul>
+<li>Perl is installed by default on most Unix/Linux/BSD systems</li>
+<li>Perl itself is a <b>portable distillation of Unix</b></li>
+<li>Perl makes a <b>big deal</b> out of software reuse (e.g. CPAN) and
+community (YAPC, PerlMonks)</li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline4">
+<h3 id="orgheadline4">Flexibility</h3>
+<ul>
+<li><b>There's More Than One Way To Do It!</b> (For Better or Worse)</li>
+<li>Supports multiple programming paradigms (more on this later)</li>
+<li>Scales with the programmer's experience</li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline5">
+<h3 id="orgheadline5">Stability</h3>
+<ul>
+<li>Builds on earlier merits of being almost everywhere and capable of
+handling almost any task</li>
+<li>Focus on <b>backwards compatibility</b> between Perl 5 versions (and some
+Perl 6 too)</li>
+<li>Focus on testing (CPAN Testers, Kwalitee)</li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline7">
+<h2 id="orgheadline7">Why FP?</h2>
+
+<div class="figure">
+<p><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Orange_lambda.svg/177px-Orange_lambda.svg.png" alt="177px-Orange_lambda.svg.png">
+</p>
+</div>
+
+<ul>
+<li>Usually easier to express concepts as <b>sets of processes/functions</b>
+    acting on input (and expressing some output)</li>
+<li>Especially easy when going over <b>sets of data</b> (arrays, hashes)</li>
+<li><b>Treat code as data</b></li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline24">
+<h2 id="orgheadline24">FP in Perl</h2>
+<ul>
+<li>Recursion and Callbacks</li>
+<li>Currying, Partial Application, and Closures</li>
+<li>Dispatch Tables and Object Systems</li>
+
+</ul>
+
+</section>
+<section id="slide-orgheadline8">
+<h3 id="orgheadline8">Basics</h3>
+<div class="org-src-container">
+
+<pre><code class="perl" >my $item = "a single item";
+my @array = ("one", "two", "many", "items"); # ordered list
+my %hash = ( x => "y", a => '1' );           # key-value pairs
+
+my $array_ref = \@array;
+my $hash_ref = \%hash;
+
+sub my_function {
+    my $input = shift;
+    "return $input as part of a string";
+}
+
+my $code_ref = \&my_function;
+
+use feature 'say';              # like `print`, but with trailing newline
+say my_function($item);
+say my_function($array_ref);
+say $code_ref->($hash_ref);
+</code></pre>
+</div>
+
+<pre class="example">
+return a single item as part of a string
+return ARRAY(0x2223520) as part of a string
+return HASH(0x22235c8) as part of a string
+</pre>
+
+</section>
+<section id="slide-orgheadline11">
+<h3 id="orgheadline11">Recursion</h3>
+
+<div class="figure">
+<p><img src="http://i.giphy.com/xT5LMqeGKphtXz80Uw.gif" alt="xT5LMqeGKphtXz80Uw.gif">
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline9">
+<h4 id="orgheadline9">Example: Factorials</h4>
+<div class="org-src-container">
+
+<pre><code class="perl" >sub factorial {
+    my $n = shift;              # accepts a number
+    return 1 if $n == 1;        # stop recursing on this condition
+    $n * factorial( $n - 1 );   # otherwise do it
+}
+
+use feature 'say';
+say factorial(5);
+say factorial(10);
+</code></pre>
+</div>
+
+<pre class="example">
+120
+3628800
+</pre>
+
+</section>
+<section id="slide-orgheadline10">
+<h4 id="orgheadline10">Recursion vs Iteration</h4>
+<div class="org-src-container">
+
+<pre><code class="perl" >sub factorial_r {
+    my $n = shift;
+    return 1 if $n == 1;
+    $n * factorial_r( $n - 1 );
+}
+
+sub factorial_i {
+    my $n = shift;
+    $n *= $n - 1 for reverse 1 .. $n;
+    $n;
+}
+
+use Benchmark 'cmpthese';
+cmpthese(
+    1000000,
+    {   recursive => 'factorial_r(10)',
+        iterative => 'factorial_i(10)',
+    }
+);
+</code></pre>
+</div>
+
+<pre class="example">
+              Rate recursive iterative
+recursive 416667/s        --      -53%
+iterative 884956/s      112%        --
+</pre>
+
+</section>
+<section id="slide-orgheadline14">
+<h3 id="orgheadline14">Callbacks</h3>
+
+<div class="figure">
+<p><img src="http://i.giphy.com/E6pfGEOsrDidq.gif" alt="E6pfGEOsrDidq.gif">
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline12">
+<h4 id="orgheadline12">Example: small web apps!</h4>
+<div class="org-src-container">
+
+<pre><code class="perl" ># I'm lazy, use a web framework!
+use Mojolicious::Lite;
+
+sub index {
+    my $c = shift;
+    $c->render( text => "You've reached the index." );
+}
+
+get '/' => \&index;
+
+# "sub { ... }" is an anonymous code ref
+get '/:foo' => sub {
+    my $c   = shift;
+    my $foo = $c->param('foo');
+    $c->render( text => "Hello from $foo!" );
+};
+
+app->start;
+</code></pre>
+</div>
+
+</section>
+<section id="slide-orgheadline13">
+<h4 id="orgheadline13">Example: finding files!</h4>
+<div class="org-src-container">
+
+<pre><code class="perl" >use feature 'say';
+use File::Find;
+
+sub wanted {
+    # predicate/filter for files to search
+    /.*zakame.*/ &&           # find files with `zakame` in the name
+        int( -M _ ) > 2 &&    # that's older than 2 days
+        say;
+}
+
+# search the wastebasket
+find( \&wanted, '/tmp' );
+</code></pre>
+</div>
+
+<pre class="example">
+.zakame-seamonkey-x7y0k6u4.default
+.zakame-google-chrome
+zakame-google-chrome
+http_cheesecake.zakame.org_0.localstorage
+http_cheesecake.zakame.org_0.localstorage-journal
+.zakame-firefox-33zz2l6v.default
+</pre>
+
+</section>
+<section id="slide-orgheadline17">
+<h3 id="orgheadline17">Closures</h3>
+
+<div class="figure">
+<p><img src="http://i.giphy.com/26BRum4AV0KV2JHKo.gif" alt="26BRum4AV0KV2JHKo.gif">
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline15">
+<h4 id="orgheadline15">Example: keeping "state"</h4>
+<p>
+Before Perl v5.10 and the <code>state</code> keyword, closures were a way of
+doing <code>static</code> variables:
+</p>
+
+<div class="org-src-container">
+
+<pre><code class="perl" >$count = 1;                  # a global variable
+
+# explicitly make a new scope with a block:
+{
+    my $count = 1;              # a lexically-scoped variable
+    sub counter { $count++ }    # a closure incrementing my $count
+}
+
+use feature 'say';
+say "lexical variable \$count = ", counter for 1..3;
+say "global variable \$count = $count";
+</code></pre>
+</div>
+
+<pre class="example">
+lexical variable $count = 1
+lexical variable $count = 2
+lexical variable $count = 3
+global variable $count = 1
+</pre>
+
+</section>
+<section id="slide-orgheadline16">
+<h4 id="orgheadline16">Example: function factories</h4>
+<div class="org-src-container">
+
+<pre><code class="perl" >sub make_bean_counter {
+    my ( $start, $callback ) = @_; # accept a starting value and a callback
+    sub {
+        # return a new function that increments and calls back
+        $start++;
+        $callback->($start);
+    };
+}
+
+my $from_ten = make_bean_counter( 10, sub { print $_[0], "\n"; } );
+$from_ten->() for 1..3;         # go from 10 to 13
+
+my $sum;
+sub accumulate {
+    $sum += $_[0]
+}
+my $from_50 = make_bean_counter( 50, \&accumulate );
+$from_50->() for 1..5;          # total from 51 to 55
+print $sum;
+</code></pre>
+</div>
+
+<pre class="example">
+11
+12
+13
+265
+</pre>
+
+</section>
+<section id="slide-orgheadline19">
+<h3 id="orgheadline19">Currying/Partial Application</h3>
+
+<div class="figure">
+<p><img src="http://i.giphy.com/mVSp0pfkOlIti.gif" alt="mVSp0pfkOlIti.gif">
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline18">
+<h4 id="orgheadline18">Example: Plack web middleware</h4>
+<div class="org-src-container">
+
+<pre><code class="perl" >use HTTP::Status ':constants';
+my $app = sub {
+    my $env = shift;
+    +[  HTTP_OK,
+        [ 'Content-Type' => 'text/html' ],
+        ["<body>Hello, $env->{REMOTE_ADDR}</body>"]
+    ];
+};
+
+use Plack::Builder;
+builder {
+    # external middleware currying the pipeline to $app
+    enable "Debug", panels => [qw(Memory Timer)];
+
+    # inline middle doing explicit currying
+    enable sub {
+        my $app = shift;
+        sub {
+            my $env = shift;
+            # override REMOTE_ADDR
+            $env->{REMOTE_ADDR} = '67.202.105.161';
+            $app->($env);
+        };
+    };
+    $app;
+};
+</code></pre>
+</div>
+
+</section>
+<section id="slide-orgheadline21">
+<h3 id="orgheadline21">Dispatch Tables</h3>
+
+<div class="figure">
+<p><img src="http://i.giphy.com/BmnbtcKKBGqfS.gif" alt="BmnbtcKKBGqfS.gif">
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline20">
+<h4 id="orgheadline20">Example: Parsing and Lexing</h4>
+<p>
+From <a href="http://www.perl.com/pub/2006/01/05/parsing.html">http://www.perl.com/pub/2006/01/05/parsing.html</a>
+</p>
+
+<div class="org-src-container">
+
+<pre><code class="perl" >use HOP::Lexer 'make_lexer';
+my @sql   = $sql;
+my $lexer = make_lexer(
+    sub { shift @sql },
+    [ 'KEYWORD', qr/(?i:select|from|as)/          ],
+    [ 'COMMA',   qr/,/                            ],
+    [ 'OP',      qr{[-=+*/]}                      ],
+    [ 'PAREN',   qr/\(/,      sub { [shift,  1] } ],
+    [ 'PAREN',   qr/\)/,      sub { [shift, -1] } ],
+    [ 'TEXT',    qr/(?:\w+|'\w+'|"\w+")/, \&text  ],
+    [ 'SPACE',   qr/\s*/,     sub {}              ],
+);
+
+sub text {
+    my ($label, $value) = @_;
+    $value =~ s/^["']//;
+    $value =~ s/["']$//;
+    return [ $label, $value ];
+}
+</code></pre>
+</div>
+
+</section>
+<section id="slide-orgheadline23">
+<h3 id="orgheadline23">FP in Object Systems</h3>
+
+<div class="figure">
+<p><img src="http://i.giphy.com/x7o97nNCQ9p6M.gif" alt="x7o97nNCQ9p6M.gif">
+</p>
+</div>
+
+</section>
+<section id="slide-orgheadline22">
+<h4 id="orgheadline22">Moose and Moo: new OOP for Perl!</h4>
+<p>
+Snippet adapted from my <a href="https://metacpan.org/pod/Hashids">Hashids</a> Perl module:
+</p>
+
+<div class="org-src-container">
+
+<pre><code class="perl" >package My::Hashids;
+use Moo;
+use Carp;
+
+# A salt is needed to initialize the Hashids encoder
+has salt => ( is => 'ro', default => '');
+
+# A minimum hash length is also needed
+has minHashLength => (
+    is => 'ro',
+    isa => sub {
+        croak "$_[0] is not a number!" unless $_[0] =~ /^\d+$/;
+    },
+    default => 0,
+);
+
+has alphabet => (
+    is => 'rw',
+    default => sub { join '' => 'a' .. 'z', 'A' .. 'Z' },
+);
+</code></pre>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline25">
+<h2 id="orgheadline25">More Information</h2>
+<ul>
+<li><a href="http://hop.perl.plover.com/">Higher-Order Perl</a> by Mark Jason Dominus, <b>the</b> reference book for FP
+in Perl</li>
+<li><a href="https://github.com/Ovid/hop/tree/master/HOP-Parser">HOP-Parser</a> by Curtis "Ovid" Poe, an early example of using Perl FP for
+building parsers/lexers</li>
+<li><a href="http://moose.iinteractive.com/en/">Moose</a>, the postmodern object system for Perl 5, using FP for OOP!
+<ul>
+<li><a href="https://metacpan.org/pod/Moo">Moo</a>, a light version suitable for web apps</li>
+
+</ul></li>
+<li><a href="http://stackoverflow.com/questions/31046327/which-features-of-perl-make-it-a-functional-programming-language">Which features of Perl make it a functional programming language?</a>
+    from StackOverflow</li>
+
+</ul>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline26">
+<h2 id="orgheadline26">Finis</h2>
+
+<div class="figure">
+<p><img src="http://i.giphy.com/7nvNwrsO4WlZS.gif" alt="7nvNwrsO4WlZS.gif">
+</p>
+</div>
+</section>
+</section>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/reveal.js/3.0.0/lib/js/head.min.js"></script>
+<script src="https://cdn.jsdelivr.net/reveal.js/3.0.0/js/reveal.js"></script>
+
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+controls: true,
+progress: true,
+history: false,
+center: true,
+slideNumber: 'c',
+rollingLinks: false,
+keyboard: true,
+overview: true,
+
+theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+transitionSpeed: 'default',
+multiplex: {
+    secret: '', // null if client
+    id: '', // id, obtained from socket.io server
+    url: '' // Location of socket.io server
+},
+
+// Optional libraries used to extend on reveal.js
+dependencies: [
+ { src: 'https://cdn.jsdelivr.net/reveal.js/3.0.0/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+ { src: 'https://cdn.jsdelivr.net/reveal.js/3.0.0/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }]
+});
+</script>
+</body>
+</html>
