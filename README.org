@@ -162,7 +162,7 @@ https://github.com/zakame/fp-perl-talk
 
 *** Example: small web apps!
 
-    #+BEGIN_SRC perl :results none
+    #+BEGIN_SRC perl :results none :tangle mojo-callbacks.pl
     # I'm lazy, use a web framework!
     use Mojolicious::Lite;
 
@@ -273,7 +273,7 @@ https://github.com/zakame/fp-perl-talk
 
 *** Example: Plack web middleware
 
-    #+BEGIN_SRC perl :results none
+    #+BEGIN_SRC perl :results none :tangle plack-currying.psgi
     use HTTP::Status ':constants';
     my $app = sub {
         my $env = shift;
