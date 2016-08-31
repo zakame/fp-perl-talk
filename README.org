@@ -1,0 +1,379 @@
+#+TITLE: Functional Perl Programming
+#+AUTHOR: Zak B. Elep
+#+EMAIL: zak.elep@yoyo-holdings.com
+#+OPTIONS: toc:nil num:nil email:t
+#+REVEAL_THEME: night
+#+REVEAL_PLUGINS: (highlight notes)
+
+https://github.com/zakame/fp-perl-talk
+
+* About Me
+
+  - @zakame in GitHub, Twitter, FB
+  - Co-Founder, Chief Architect, YOYO Holdings
+  - Recovering Sysadmin
+  - Hacks on Perl, Docker, Emacs, Android
+
+  #+BEGIN_NOTES
+  This is written using Emacs OrgMode, publishing using Reveal.js,
+  adapting from my earlier Docker on AWS talk :D
+  #+END_NOTES
+
+* What's this for?
+
+  - A (hopefully) short blather on Perl and a (longer) codewalk on its
+    Functional Programming (FP) capabilities
+  - NOT a Perl tutorial, but should cover a couple key concepts enabling
+    FP (and not just FP) in Perl
+  - A practical example of FP in general, covering only the most
+    visible/popular ones; applicable to other languages
+
+  #+BEGIN_NOTES
+  I have a harder time deciding what this talk is for especially as I
+  have a very limited audience (and one that probably does not know
+  about Perl at all.)
+  #+END_NOTES
+
+* Why Perl?
+
+  [[http://old.sppn.nl/images/prp.png]]
+
+** Ubiquity
+
+   - Perl is installed by default on most Unix/Linux/BSD systems
+   - Perl itself is a *portable distillation of Unix*
+   - Perl makes a *big deal* out of software reuse (e.g. CPAN) and
+     community (YAPC, PerlMonks)
+
+** Flexibility
+
+   - *There's More Than One Way To Do It!* (For Better or Worse)
+   - Supports multiple programming paradigms (more on this later)
+   - Scales with the programmer's experience
+
+** Stability
+
+   - Builds on earlier merits of being almost everywhere and capable of
+     handling almost any task
+   - Focus on *backwards compatibility* between Perl 5 versions (and some
+     Perl 6 too)
+   - Focus on testing (CPAN Testers, Kwalitee)
+
+* Why FP?
+
+  [[https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Orange_lambda.svg/177px-Orange_lambda.svg.png]]
+
+  - Usually easier to express concepts as *sets of processes/functions*
+    acting on input (and expressing some output)
+  - Especially easy when going over *sets of data* (arrays, hashes)
+  - *Treat code as data*
+
+* FP in Perl
+  :PROPERTIES:
+  :header-args:perl: :results output :exports both
+  :END:
+
+  - Recursion and Callbacks
+  - Currying, Partial Application, and Closures
+  - Dispatch Tables and Object Systems
+
+** Basics
+
+   #+BEGIN_SRC perl
+   my $item = "a single item";
+   my @array = ("one", "two", "many", "items"); # ordered list
+   my %hash = ( x => "y", a => '1' );           # key-value pairs
+
+   my $array_ref = \@array;
+   my $hash_ref = \%hash;
+
+   sub my_function {
+       my $input = shift;
+       "return $input as part of a string";
+   }
+
+   my $code_ref = \&my_function;
+
+   use feature 'say';              # like `print`, but with trailing newline
+   say my_function($item);
+   say my_function($array_ref);
+   say $code_ref->($hash_ref);
+   #+END_SRC
+
+   #+RESULTS:
+   : return a single item as part of a string
+   : return ARRAY(0x2223520) as part of a string
+   : return HASH(0x22235c8) as part of a string
+
+** Recursion
+
+   [[http://i.giphy.com/xT5LMqeGKphtXz80Uw.gif]]
+
+*** Example: Factorials
+
+    #+BEGIN_SRC perl
+    sub factorial {
+        my $n = shift;              # accepts a number
+        return 1 if $n == 1;        # stop recursing on this condition
+        $n * factorial( $n - 1 );   # otherwise do it
+    }
+
+    use feature 'say';
+    say factorial(5);
+    say factorial(10);
+    #+END_SRC
+
+    #+RESULTS:
+    : 120
+    : 3628800
+
+*** Recursion vs Iteration
+
+    #+BEGIN_SRC perl
+    sub factorial_r {
+        my $n = shift;
+        return 1 if $n == 1;
+        $n * factorial_r( $n - 1 );
+    }
+
+    sub factorial_i {
+        my $n = shift;
+        $n *= $n - 1 for reverse 1 .. $n;
+        $n;
+    }
+
+    use Benchmark 'cmpthese';
+    cmpthese(
+        1000000,
+        {   recursive => 'factorial_r(10)',
+            iterative => 'factorial_i(10)',
+        }
+    );
+    #+END_SRC
+
+    #+RESULTS:
+    :               Rate recursive iterative
+    : recursive 416667/s        --      -53%
+    : iterative 884956/s      112%        --
+
+** Callbacks
+
+   [[http://i.giphy.com/E6pfGEOsrDidq.gif]]
+
+*** Example: small web apps!
+
+    #+BEGIN_SRC perl :results none
+    # I'm lazy, use a web framework!
+    use Mojolicious::Lite;
+
+    sub index {
+        my $c = shift;
+        $c->render( text => "You've reached the index." );
+    }
+
+    get '/' => \&index;
+
+    # "sub { ... }" is an anonymous code ref
+    get '/:foo' => sub {
+        my $c   = shift;
+        my $foo = $c->param('foo');
+        $c->render( text => "Hello from $foo!" );
+    };
+
+    app->start;
+    #+END_SRC
+
+*** Example: finding files!
+
+    #+BEGIN_SRC perl
+    use feature 'say';
+    use File::Find;
+
+    sub wanted {
+        # predicate/filter for files to search
+        /.*zakame.*/ &&           # find files with `zakame` in the name
+            int( -M _ ) > 2 &&    # that's older than 2 days
+            say;
+    }
+
+    # search the wastebasket
+    find( \&wanted, '/tmp' );
+    #+END_SRC
+
+    #+RESULTS:
+    : .zakame-seamonkey-x7y0k6u4.default
+    : .zakame-google-chrome
+    : zakame-google-chrome
+    : http_cheesecake.zakame.org_0.localstorage
+    : http_cheesecake.zakame.org_0.localstorage-journal
+    : .zakame-firefox-33zz2l6v.default
+
+** Closures
+
+   [[http://i.giphy.com/26BRum4AV0KV2JHKo.gif]]
+
+*** Example: keeping "state"
+
+   Before Perl v5.10 and the =state= keyword, closures were a way of
+   doing =static= variables:
+
+   #+BEGIN_SRC perl
+   $count = 1;                  # a global variable
+
+   # explicitly make a new scope with a block:
+   {
+       my $count = 1;              # a lexically-scoped variable
+       sub counter { $count++ }    # a closure incrementing my $count
+   }
+
+   use feature 'say';
+   say "lexical variable \$count = ", counter for 1..3;
+   say "global variable \$count = $count";
+   #+END_SRC
+
+   #+RESULTS:
+   : lexical variable $count = 1
+   : lexical variable $count = 2
+   : lexical variable $count = 3
+   : global variable $count = 1
+
+*** Example: function factories
+
+    #+BEGIN_SRC perl
+    sub make_bean_counter {
+        my ( $start, $callback ) = @_; # accept a starting value and a callback
+        sub {
+            # return a new function that increments and calls back
+            $start++;
+            $callback->($start);
+        };
+    }
+
+    my $from_ten = make_bean_counter( 10, sub { print $_[0], "\n"; } );
+    $from_ten->() for 1..3;         # go from 10 to 13
+
+    my $sum;
+    sub accumulate {
+        $sum += $_[0]
+    }
+    my $from_50 = make_bean_counter( 50, \&accumulate );
+    $from_50->() for 1..5;          # total from 51 to 55
+    print $sum;
+    #+END_SRC
+
+    #+RESULTS:
+    : 11
+    : 12
+    : 13
+    : 265
+
+** Currying/Partial Application
+
+   [[http://i.giphy.com/mVSp0pfkOlIti.gif]]
+
+*** Example: Plack web middleware
+
+    #+BEGIN_SRC perl :results none
+    use HTTP::Status ':constants';
+    my $app = sub {
+        my $env = shift;
+        +[  HTTP_OK,
+            [ 'Content-Type' => 'text/html' ],
+            ["<body>Hello, $env->{REMOTE_ADDR}</body>"]
+        ];
+    };
+
+    use Plack::Builder;
+    builder {
+        # external middleware currying the pipeline to $app
+        enable "Debug", panels => [qw(Memory Timer)];
+
+        # inline middle doing explicit currying
+        enable sub {
+            my $app = shift;
+            sub {
+                my $env = shift;
+                # override REMOTE_ADDR
+                $env->{REMOTE_ADDR} = '67.202.105.161';
+                $app->($env);
+            };
+        };
+        $app;
+    };
+    #+END_SRC
+
+** Dispatch Tables
+
+   [[http://i.giphy.com/BmnbtcKKBGqfS.gif]]
+
+*** Example: Parsing and Lexing
+
+    From http://www.perl.com/pub/2006/01/05/parsing.html
+
+    #+BEGIN_SRC perl :results none
+    use HOP::Lexer 'make_lexer';
+    my @sql   = $sql;
+    my $lexer = make_lexer(
+        sub { shift @sql },
+        [ 'KEYWORD', qr/(?i:select|from|as)/          ],
+        [ 'COMMA',   qr/,/                            ],
+        [ 'OP',      qr{[-=+*/]}                      ],
+        [ 'PAREN',   qr/\(/,      sub { [shift,  1] } ],
+        [ 'PAREN',   qr/\)/,      sub { [shift, -1] } ],
+        [ 'TEXT',    qr/(?:\w+|'\w+'|"\w+")/, \&text  ],
+        [ 'SPACE',   qr/\s*/,     sub {}              ],
+    );
+
+    sub text {
+        my ($label, $value) = @_;
+        $value =~ s/^["']//;
+        $value =~ s/["']$//;
+        return [ $label, $value ];
+    }
+    #+END_SRC
+
+** FP in Object Systems
+
+   [[http://i.giphy.com/x7o97nNCQ9p6M.gif]]
+
+*** Moose and Moo: new OOP for Perl!
+
+    Snippet adapted from my [[https://metacpan.org/pod/Hashids][Hashids]] Perl module:
+
+    #+BEGIN_SRC perl :results none
+    package My::Hashids;
+    use Moo;
+    use Carp;
+
+    # A salt is needed to initialize the Hashids encoder
+    has salt => ( is => 'ro', default => '');
+
+    # A minimum hash length is also needed
+    has minHashLength => (
+        is => 'ro',
+        isa => sub {
+            croak "$_[0] is not a number!" unless $_[0] =~ /^\d+$/;
+        },
+        default => 0,
+    );
+
+    has alphabet => (
+        is => 'rw',
+        default => sub { join '' => 'a' .. 'z', 'A' .. 'Z' },
+    );
+    #+END_SRC  
+
+* More Information
+
+  - [[http://hop.perl.plover.com/][Higher-Order Perl]] by Mark Jason Dominus, *the* reference book for FP
+    in Perl
+  - [[https://github.com/Ovid/hop/tree/master/HOP-Parser][HOP-Parser]] by Curtis "Ovid" Poe, an early example of using Perl FP for
+    building parsers/lexers
+  - [[http://moose.iinteractive.com/en/][Moose]], the postmodern object system for Perl 5, using FP for OOP!
+    + [[https://metacpan.org/pod/Moo][Moo]], a light version suitable for web apps
+  - [[http://stackoverflow.com/questions/31046327/which-features-of-perl-make-it-a-functional-programming-language][Which features of Perl make it a functional programming language?]]
+    from StackOverflow
+
+* Finis
+
+  [[http://i.giphy.com/7nvNwrsO4WlZS.gif]]
